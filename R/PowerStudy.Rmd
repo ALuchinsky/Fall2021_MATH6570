@@ -1,0 +1,216 @@
+---
+title: "Power Study"
+author: "Alexey Luchinsky"
+date: "10/28/2021"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+library(dplyr)
+library(ggplot2)
+library(tidyr)
+rm(list = ls())
+```
+
+
+# Table V
+
+```{r}
+source("./scripts/Tab5.R")
+```
+
+
+## Trying to reproduce Table V from the article
+
+
+
+```{r}
+alpha.list <- c(0.01, 0.02, 0.05, 0.1, 0.2) 
+n.list <- c(10, 20, 50, 100, 200, 500)
+```
+
+Calculate the CVs. It takes about 5 mins to do 10 loops. Change to true if you want to update the statistacs
+
+```{r}
+if(FALSE) {
+  system.time({
+    for(n in n.list) {
+      print(paste("n=", n))
+      df <- updateJBCVfile(n = n, alpha = alpha.list, nLoop = 10)
+    }
+  })
+}
+df <- readRDS("../data/processed/tab5.rds")
+```
+
+```{r}
+df
+```
+
+
+```{r}
+df %>% group_by(n, alpha) %>% summarise(num = n())
+```
+
+
+```{r}
+df %>% group_by(n, alpha) %>% summarise(cv = mean(cv)) 
+```
+
+
+Making table:
+
+```{r}
+df %>% filter(n %in% n.list) %>% group_by(n, alpha) %>% summarise(cv = mean(cv)) %>% 
+  tidyr::spread(n, cv) %>% round(3)
+```
+
+Reading table from paper
+
+```{r}
+# conversion done with https://pdftables.com/blog/convert-pdf-to-csv
+paper.data <- read.csv("../data/external/Table5.csv")
+Tab5 <- paper.data
+colnames(Tab5)= c("alpha", "10", "20", "50", "100", "200", "500", "1000")
+Tab5_long <- gather(Tab5, key = n, value = cv, "10":"1000")
+Tab5_long$n <- as.numeric(Tab5_long$n)
+Tab5_long %>% group_by(n, alpha) %>% summarise(cv = mean(cv)) %>% spread(n, cv) %>% round(3)
+```
+
+All plots on one axes frame:
+
+```{r}
+df %>% group_by(n, alpha) %>% summarise(cv = mean(cv)) %>% 
+  ggplot(aes(x=n, y=cv, group = alpha, color = factor(alpha))) + geom_line() +
+    geom_point(data = Tab5_long, aes(x=n, y = cv, group = alpha, color = as.factor(alpha)), cex = 2) + 
+  scale_x_log10() +
+  ggtitle("Comparison of the calculation (line) with paper's Table 5 (article)")
+```
+
+As facet grid
+
+```{r}
+df %>% group_by(n, alpha) %>% summarise(cv = mean(cv)) %>% 
+  ggplot(aes(x=n, y=cv)) + geom_line() + 
+  geom_point(data = Tab5_long, aes(x=n, y = cv, group = alpha, color = as.factor(alpha)), cex = 2) + 
+  scale_x_log10() +
+  facet_wrap(~ alpha)
+```
+
+Using grid.arrange
+
+
+
+```{r fig.height=5, fig.width=5}
+figs = list()
+for(i in 1:length(alpha.list)) {
+  alpha_ <- alpha.list[i]
+  figs[[i]] <- df %>% filter(alpha == alpha_) %>% group_by(n) %>% summarise(cv = mean(cv)) %>% 
+    ggplot(aes(x = n, y = cv)) + geom_line() +
+    geom_point(data = Tab5_long %>% filter(alpha == alpha_), aes(x=n, y = cv), cex = 2, color = "red") + 
+    scale_x_log10() +
+    ggtitle(paste("Comparison with Table 5, alpha = ", alpha_))
+}
+gridExtra::grid.arrange(grobs = figs)
+```
+## Figures
+
+```{r}
+set.seed(123)
+n <- 20
+N <- 1e5
+alpha <- 0.2
+data <- matrix(rnorm(n*N), ncol = n)
+T <- apply(data, 1,function(x) tseries::jarque.bera.test(x)$statistic)
+t0 <- quantile(T, 1-alpha)
+#MASS::truehist(T, main = paste("n=", n," alpha=",alpha, " t0=", round(t0,3)), xlim=c(0,12), ylim = c(0, 0.7))
+```
+
+```{r}
+par(pty="s")
+MASS::truehist(T, main = paste("n=", n," alpha=",alpha, " t0=", round(t0,3)), xlim=c(0,12), ylim = c(0, 0.7))
+curve(dchisq(x, 2), add=TRUE, col="red", lty=4, lwd=3)
+grid()
+legend("topright", legend = c(paste("n=",n), "inf"), lty=c(1, 4), col=c("black", "red"))
+```
+
+# Table VI
+
+```{r}
+source("scripts/Tab6.R")
+```
+
+
+Generating critical values for specific n and saving it to the file. Note that this command can take long to run
+
+```{r}
+if(FALSE) {
+  ntry <- 100
+  pb <- knitrProgressBar::progress_estimated(ntry)
+  for(i in 1:ntry) {
+    knitrProgressBar::update_progress(pb)
+    df <- saveTab6(n=5, ne = 1e4)
+  }
+}
+df <- readRDS("../data/processed//tab6.rds")
+```
+
+
+
+```{r}
+df <- readRDS("../data/processed//tab6.rds")
+df %>% group_by(n) %>% summarise(nn = n())
+```
+
+```{r}
+n.list
+```
+
+
+```{r}
+df %>% filter(n %in% n.list) %>% group_by(n, alpha) %>% summarise(cv = mean(cv)) %>% tidyr::spread(n, cv) %>% round(3)
+```
+
+
+
+```{r}
+Tab6 <- read.csv("../data/external/Table6.csv")
+colnames(Tab6) = c("alpha", "10", "20", "50", "100", "200", "500")
+Tab6_long <- gather(Tab6, key = n, value = cv, "10":"500")
+Tab6_long$n <- as.numeric(Tab6_long$n)
+Tab6
+```
+
+
+
+```{r}
+df %>% group_by(n, alpha) %>% summarize(cv = mean(cv), .groups = "drop") %>% 
+  ggplot(aes(x=n, y=cv, group = alpha, colour = factor(alpha))) + geom_line() + geom_point(cex=0.7) +
+  geom_point(data = Tab6_long, aes(x=n, y = cv, group = alpha, color = as.factor(alpha)), cex = 2) + 
+  ggtitle("Comparison of the calculation (line) with paper's Table 6 (article)")
+```
+
+## intervals
+
+
+```{r}
+library(boot)
+```
+
+```{r}
+alpha_ <- 0.01
+n_ <- 500
+data <- df %>% filter(n == n_ & alpha == alpha_) %>% pull(cv)
+boot.out <- boot(data, function(x, ind) mean(x[ind]), R = 999)
+ci <- boot.ci( boot.out, type = "bca")
+list(
+  paper = Tab6[Tab6[,1] == alpha_, colnames(Tab6)==n_],
+  my = ci$bca[4:5]
+)
+
+```
+

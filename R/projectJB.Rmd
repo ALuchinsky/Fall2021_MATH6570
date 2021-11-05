@@ -1,0 +1,55 @@
+---
+title: "Project"
+author: "Alexey Luchinsky"
+date: "9/22/2021"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+Trying to consider a paper 
+
+> THORSTEN THADEWALD & HERBERT BU¨ NING, 
+> "Jarque –Bera Test and its Competitors for Testing Normality – A Power Comparison", 
+> Journal of Applied Statistics Vol. 34, No. 1, 87 –105, January 2007
+
+```{r}
+# data dowloaded from
+#  https://finance.yahoo.com/quote/%5EGDAXI/history?period1=1024358400&period2=1049068800&interval=1d&filter=history&frequency=1d&includeAdjustedClose=true
+
+data <- read.csv("./GDAXI.csv")
+data["Open"] <- sapply(data["Open"], as.numeric)
+data["Close"] <- sapply(data["Close"], as.numeric)
+data["Return"] <- 100*(data["Close"] - data["Open"])/data["Open"]
+returns <- data$Return
+returns = returns[ !is.na(returns)]
+length(returns)
+```
+
+
+
+```{r}
+#hist(returns, breaks = 15, freq = F, ylim=c(0, 0.16), xlim=c(-9, 10), xlab="Return", main = "Histogram of DAX returns")
+MASS::truehist(returns, nbins = 10)
+curve( dnorm(x, 0, sd=3), add=T, lty=2)
+grid()
+```
+
+```{r}
+ret.mean = mean(returns)
+mu.hat <- function(j, data=returns) {
+  data.mean <- mean(data)
+  mean( (data-data.mean)**j)
+}
+S = mu.hat(3)/mu.hat(2)**(3/2)
+K <- mu.hat(4)/mu.hat(2)**2
+JB = 1/6 * (S**2+(K-3)**2/4)
+JB
+```
+
+```{r}
+pchisq(0.95, df=200)
+```
+
