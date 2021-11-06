@@ -255,8 +255,16 @@ I put the time consuming lines under `if(FALSE) {}` to prevant automatic evaluat
 ```{r}
 
 if(FALSE) {
-  for( sigma2 in c(1,2,3,4,6)) {
-    df <- saveSKtable(p = 0.5, mu2 = 3, sigma2 = sigma2)
+  # Table 8
+#  for( sigma2 in c(1,2,3,4,6)) {
+#    df <- saveSKtable(p = 0.5, mu2 = 3, sigma2 = sigma2)
+#  }
+  # Table 9
+#  for(mu2 in c(0, 1, 2, 3, 4)) {
+#    df <- saveSKtable(p = 0.50, mu2 = mu2, sigma2 = 1)
+#  }
+  for(p in c(0.05, 0.20, 0.5, 0.8, 0.95)) {
+    df <- saveSKtable(p = p, mu2 = 0, sigma2 = 4) 
   }
 }
 ```
@@ -264,7 +272,7 @@ if(FALSE) {
 
 ```{r}
 df <- readRDS("../data/processed/tabSK.rds")
-df %>% filter(mu2 >0 ) %>% 
+df %>% filter(sigma2 == 4 & mu2 == 0 ) %>% 
   group_by(p, mu2, sigma2) %>% summarize(Sk = mean(Sk), Kurt = mean(Kurt)) %>% round(2)
 ```
 
