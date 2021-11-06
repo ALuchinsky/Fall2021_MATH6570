@@ -211,6 +211,70 @@ list(
   paper = Tab6[Tab6[,1] == alpha_, colnames(Tab6)==n_],
   my = ci$bca[4:5]
 )
+```
 
+# Table 8
+
+```{r}
+source("scripts/tabSK.R")
+```
+
+ 
+Testing:
+
+```{r}
+set.seed(123)
+x <- genFCN(1e5, p = 0.8, mu2 = 4, sigma2 = 1)
+MASS::truehist(x, ylab = "F", xlab = "x", main = "p=0.8, mu2 = 4, sigma2 = 1" )
+curve( (1-0.8)*dnorm(x) + 0.8*dnorm(x, mean=4, sd=1), add = TRUE, col="red", lwd = 2)
+```
+
+This library is used to calculate easily skewness and kurtosis os the sample
+
+
+type = 1 choice is in agreement with the article's conventions (note that you should subtract 3 from the kurtosis)
+
+```{r}
+mx <- mean(x)
+c( 
+  mean( (x-mx)**3)/mean( (x-mx)^2)^(3/2),
+  skewness(x, type = 1)
+)
+c(
+  mean((x-mx)^4)/mean( (x-mx)^2)^2,
+  3+kurtosis(x, type=1)
+)
+```
+
+```{r}
+df <- data.frame()
+```
+
+I put the time consuming lines under `if(FALSE) {}` to prevant automatic evaluation. It can be easily evaluated by selecting the inner code and pressing Cmd-Enter (on Mac)
+
+```{r}
+
+if(FALSE) {
+  for( sigma2 in c(1,2,3,4,6)) {
+    df <- saveSKtable(p = 0.5, mu2 = 3, sigma2 = sigma2)
+  }
+}
+```
+
+
+```{r}
+df <- readRDS("../data/processed/tabSK.rds")
+df %>% filter(mu2 >0 ) %>% 
+  group_by(p, mu2, sigma2) %>% summarize(Sk = mean(Sk), Kurt = mean(Kurt)) %>% round(2)
+```
+
+
+```{r}
+boot.out <- boot(df$Kurt, function(x, ind) mean(x[ind]), 999)
+boot.out
+```
+
+```{r}
+boot.ci(boot.out)
 ```
 
