@@ -286,3 +286,126 @@ boot.out
 boot.ci(boot.out)
 ```
 
+# Figure 5
+
+```{r}
+source("./scripts/tabSK.R")
+```
+
+
+```{r}
+df5 <- readRDS("../data/processed/tab5.rds")
+calcPower <- function(n = 100, p = 0.1, mu2 = 0, sigma2 = 1, alpha = 0.05,
+                      file_name = "../data/processed/tabPower.rds") {
+  if( !file.exists(file_name)) {
+    df <- data.frame()
+  } else {
+    df <- readRDS(file_name)
+  }
+  n_ <- n;
+  alpha_ <- alpha;
+  t0 <- filter(df5, n == n_ & alpha == alpha_)
+  if(nrow(t0) == 0) {
+    t0 <- as.numeric( getJBCV(n = n, alpha = alpha) )
+  }
+  else {
+    t0 <- as.numeric( mean(t0$cv))
+  }
+  T <- replicate(1e4, {
+    z <- genFCN(n = n, p = p, mu2 = mu2, sigma2 = sigma2)
+    tseries::jarque.bera.test(z)$statistic
+  })
+  df <- rbind(df, 
+            data.frame(n = n, p = p, mu2 = mu2, sigma2 = sigma2, alpha = alpha, P = mean(T > t0))
+            )
+  saveRDS(df, file_name)
+  df
+}
+```
+
+```{r}
+df <- data.frame()
+```
+
+
+```{r}
+if(FALSE) {
+  sigma2.list <- c( seq(1, 3, 0.2), seq(3.5, 6, 0.5))
+  pb <- knitrProgressBar::progress_estimated( length(sigma2.list))
+  for( sigma2 in sigma2.list) {
+    knitrProgressBar::update_progress(pb)
+    df <- calcPower(n = 200, mu2 = 0, p = 0.80, sigma2 = sigma2)
+  }
+}
+```
+
+```{r}
+if(FALSE) {
+  p.list <- seq(0, 1, 0.05)
+  pb <- knitrProgressBar::progress_estimated( length(p.list))
+  for( p in p.list) {
+    knitrProgressBar::update_progress(pb)
+    df <- calcPower(n = 50, mu2 = 0, sigma2 = 4, p = p)
+  }
+}
+```
+
+
+
+```{r}
+n <- 100
+mu2 <- 0
+p <- 0.10
+df %>% filter(n==100 & mu2 == 0 & p == 0.10) %>% 
+  ggplot(aes(x=sigma2, y=P)) + geom_line() + geom_point() + geom_point() +
+  geom_hline(yintercept = 0) + geom_vline(xintercept = 1) + geom_hline(yintercept = 0.05, lty=2) +
+  labs(x = "sigma2", title = paste("Fig5: n=", n," mu2=", mu2, "p=",p))
+rm(n, mu2, p)
+```
+```{r}
+n_ <- 100
+mu2_ <- 0
+p_ <- 0.50
+df %>% filter(n==n_ & mu2 == mu2_ & p == p_) %>% 
+  ggplot(aes(x=sigma2, y=P)) + geom_line() + geom_point() + geom_point() +
+  geom_hline(yintercept = 0) + geom_vline(xintercept = 1) + geom_hline(yintercept = 0.05, lty=2) +
+  labs(x = "sigma2", title = paste("Fig6: n=", n_," mu2=", mu2_, "p=",p_))
+rm(n_, mu2_, p_)
+```
+
+```{r}
+n_ <- 100
+mu2_ <- 0
+df %>% filter(n==n_ & mu2 == mu2_) %>% 
+ggplot(aes(x=sigma2, y=P, group = p, color = factor(p))) + geom_line() + geom_point() + geom_point() +
+  geom_hline(yintercept = 0) + geom_vline(xintercept = 1) + geom_hline(yintercept = 0.05, lty=2) +
+  labs(x = "sigma2", title = paste("Figs 5, 6: n=", n_," mu2=", mu2_))
+```
+
+```{r}
+n_ <- 200
+mu2_ <- 0
+df %>% filter(n==n_ & mu2 == mu2_) %>% 
+ggplot(aes(x=sigma2, y=P, group = p, color = factor(p))) + geom_line() + geom_point() + geom_point() +
+  geom_hline(yintercept = 0) + geom_vline(xintercept = 1) + geom_hline(yintercept = 0.05, lty=2) +
+  labs(x = "sigma2", title = paste("Figs 7, 6: n=", n_," mu2=", mu2_))
+```
+```{r}
+n_ <- 50
+mu2_ <- 0
+sigma2_ <- 4
+df %>% filter(n==n_ & mu2 == mu2_ & sigma2 == sigma2_) %>% 
+  filter( p %in% seq(0, 1, 0.1)) %>% 
+ggplot(aes(x=p, y=P)) + geom_line() + geom_point() + geom_point() +
+  geom_hline(yintercept = 0) + geom_vline(xintercept = 0) + geom_hline(yintercept = 0.05, lty=2) +
+  labs(x = "p", title = paste("Figs 11: n=", n_," mu2=", mu2_, "sigma2 = ", sigma2_))
+```
+```{r}
+df %>% filter(n==n_ & mu2 == mu2_ & sigma2 == sigma2_ & p == 0.1)
+```
+
+```{r}
+colnames(df)
+```
+
+

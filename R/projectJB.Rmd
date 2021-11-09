@@ -19,7 +19,8 @@ Trying to consider a paper
 # data dowloaded from
 #  https://finance.yahoo.com/quote/%5EGDAXI/history?period1=1024358400&period2=1049068800&interval=1d&filter=history&frequency=1d&includeAdjustedClose=true
 
-data <- read.csv("./GDAXI.csv")
+#data <- read.csv("../data/external/GDAXI.csv")
+data <- read.csv("https://query1.finance.yahoo.com/v7/finance/download/%5EGDAXI?period1=1024358400&period2=1049068800&interval=1d&events=history&includeAdjustedClose=true")
 data["Open"] <- sapply(data["Open"], as.numeric)
 data["Close"] <- sapply(data["Close"], as.numeric)
 data["Return"] <- 100*(data["Close"] - data["Open"])/data["Open"]
