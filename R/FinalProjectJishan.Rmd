@@ -1,0 +1,363 @@
+---
+title: "Project"
+author: "Jishan Ahmed"
+date: "11/7/2021"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+
+## Setting up: Install required packages
+
+
+```{r}
+#Check directory location
+getwd()
+library(dplyr)
+```
+
+## Load GDAXI data
+
+```{r}
+GDAXI=read.csv("https://query1.finance.yahoo.com/v7/finance/download/%5EGDAXI?period1=1024358400&period2=1049068800&interval=1d&events=history&includeAdjustedClose=true")
+```
+
+```{r}
+str(GDAXI)
+```
+```{r}
+GDAXI$Date=as.Date(GDAXI$Date, format =  "%Y-%m-%d")
+```
+
+```{r}
+str(GDAXI)
+```
+```{r}
+GDAXI[!complete.cases(GDAXI), ]
+```
+
+```{r}
+library(taRifx )
+df1 <- japply(GDAXI, which(sapply(GDAXI, class)=="character"), as.numeric )
+```
+```{r}
+str(df1)
+```
+
+
+```{r}
+sum(is.na(df1))
+```
+
+
+```{r}
+sum(is.na(df1$Adj.Close))
+```
+
+
+```{r}
+which(is.na(df1$Adj.Close))
+```
+```{r}
+df1[!complete.cases(df1), ]
+```
+
+```{r}
+df1=na.omit(df1)
+```
+
+```{r}
+head(df1)
+```
+
+```{r}
+sum(is.na(df1))
+```
+
+
+```{r}
+df1$Return <- c(-diff(df1$Adj.Close)/df1$Adj.Close[-1]*100, NA)
+```
+
+```{r}
+df2=df1
+```
+
+```{r}
+head(df2)
+```
+
+```{r}
+#based on your formula    
+df1 %>% mutate(Return = (Adj.Close - lead(Adj.Close)) / lead(Adj.Close))
+
+# based on your outcome 
+df2=df1%>% mutate(Return= (Adj.Close - lead(Adj.Close)) / lead(Adj.Close) * 100)
+```
+
+```{r}
+data <- read.csv("https://query1.finance.yahoo.com/v7/finance/download/%5EGDAXI?period1=1024358400&period2=1049068800&interval=1d&events=history&includeAdjustedClose=true")
+data["Open"] <- sapply(data["Open"], as.numeric)
+data["Close"] <- sapply(data["Close"], as.numeric)
+data["Return"] <- 100*(data["Close"] - data["Open"])/data["Open"]
+returns <- data$Return
+returns = returns[ !is.na(returns)]
+returns
+```
+
+
+```{r}
+sum(is.na(df2))
+```
+```{r}
+df2[!complete.cases(df2), ]
+```
+
+```{r}
+Finaldf=na.omit(df2)
+```
+
+```{r}
+sum(is.na(Finaldf))
+```
+
+```{r}
+str(Finaldf)
+```
+
+
+```{r}
+df <- Finaldf$Return
+df
+```
+```{r}
+m<-mean(df)
+std<-sqrt(var(df))
+hist(df,main="Fig. 1. Histogram of daily DAX returns", 
+     xlab="Time",
+     panel.first=grid(),
+     border="black", 
+     col="white",
+     freq=FALSE,
+     xaxt="n",
+     ylab="Relative Frequency",
+     las=1, 
+     breaks=15,cex.main =0.9,
+     prob = TRUE)
+axis(1, at=seq(-8, 12, by=2))
+#lines(density(mass), col="red")
+lines(seq(-40, max(df), by=.5), dnorm(seq(-40, max(df), by=.5),
+     mean(df), sd(df)),lty=5, col="black")
+```
+
+
+```{r}
+#hist(returns, breaks = 15, freq = F, ylim=c(0, 0.16), xlim=c(-9, 10), xlab="Return", main = "Histogram of DAX returns")
+MASS::truehist(df, nbins = 15)
+curve( dnorm(x, 0, sd=3), add=T, lty=2)
+grid()
+
+```
+
+```{r}
+library("readxl")
+rev<- read_excel("/cloud/project/revdata.xlsx")
+```
+
+```{r}
+str(rev)
+```
+
+```{r}
+sum(is.na(rev))
+```
+```{r}
+head(rev)
+```
+
+```{r}
+rev$CorpRev[rev$Level == "Mn"] <- rev$CorpRev[rev$Level == "Mn"] / 1000
+rev$AdSpend[rev$Level == "Mn"] <- rev$AdSpend[rev$Level == "Mn"] / 1000
+```
+
+```{r}
+head(rev)
+```
+
+
+```{r}
+plot(rev$AdSpend,rev$CorpRev,main = "Scatterplot of U.S. advertisers 2001",
+     xlab = "Ad spending (in billion US-$)", ylab = "Corporate revenues (in billion US-$)")
+grid()
+m <- lm(rev$CorpRev ~ rev$AdSpend)
+abline(m)
+```
+
+## Table 3 content
+
+## JB
+
+```{r}
+library("tseries")
+jarque.bera.test(df)
+```
+
+```{r}
+JB=jarque.bera.test(df)
+JB=data.frame(unlist(JB))
+JB
+```
+
+
+## JBU
+
+
+
+## KS
+
+```{r}
+KS=ks.test(df, "pnorm", mean=mean(df), sd=sd(df))
+KS=data.frame(unlist(KS))
+KS
+```
+
+## KSW
+
+```{r}
+library(Ecume)
+ks_test(df, df,thresh = .001)
+```
+
+## KUIP
+
+```{r}
+kuiper.test(df,alpha=0.01)
+```
+
+```{r}
+library(CircStats)
+library(circular)
+k=kuiper.test(df,alpha=0.01)
+k$statistic
+k$V
+```
+
+# CM
+
+```{r}
+library(nortest)
+CM=cvm.test(df)
+CM=data.frame(unlist(CM))
+CM
+
+```
+
+##  CMW
+
+```{r}
+library(nortest)
+CMW=ad.test(df)
+CMW=data.frame(unlist(CMW))
+CMW
+```
+
+## SW 
+
+```{r}
+sw=shapiro.test(df)
+sw=data.frame(unlist(CMW))
+sw
+
+```
+
+
+
+## Example 2 (Table 4 conetnt) 
+
+
+```{r}
+m <- lm(rev$CorpRev ~ rev$AdSpend)
+residuals<-m$residuals
+```
+
+## JB
+
+```{r}
+library("tseries")
+jarque.bera.test(residuals)
+```
+
+```{r}
+JB=jarque.bera.test(residuals)
+JB=data.frame(unlist(JB))
+JB
+```
+
+## JBU
+
+
+
+## KS
+
+```{r}
+KS=ks.test(residuals, "pnorm", mean=mean(residuals), sd=sd(residuals))
+KS=data.frame(unlist(KS))
+KS
+```
+
+## KSW
+
+```{r}
+library(Ecume)
+ks_test(df, df,thresh = .001)
+```
+
+
+## KUIP
+
+```{r}
+kuiper.test(residuals,alpha=0.01)
+```
+
+```{r}
+library(CircStats)
+library(circular)
+k=kuiper.test(residuals,alpha=0.01)
+k$statistic
+```
+
+
+
+# CM
+
+```{r}
+library(nortest)
+CM=cvm.test(residuals)
+CM=data.frame(unlist(CM))
+CM
+
+```
+
+##  CMW
+
+```{r}
+library(nortest)
+CMW=ad.test(residuals)
+CMW=data.frame(unlist(CMW))
+CMW
+```
+
+## SW 
+
+```{r}
+sw=shapiro.test(residuals)
+sw=data.frame(unlist(sw))
+sw
+
+```
+
+
