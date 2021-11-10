@@ -286,7 +286,9 @@ boot.out
 boot.ci(boot.out)
 ```
 
-# Figure 5
+# Figures
+
+## Data Collection
 
 ```{r}
 source("./scripts/tabSK.R")
@@ -294,7 +296,7 @@ source("./scripts/tabSK.R")
 
 
 ```{r}
-df5 <- readRDS("../data/processed/tab5.rds")
+df<- readRDS("../data/processed/tabPower.rds")
 calcPower <- function(n = 100, p = 0.1, mu2 = 0, sigma2 = 1, alpha = 0.05,
                       file_name = "../data/processed/tabPower.rds") {
   if( !file.exists(file_name)) {
@@ -323,89 +325,190 @@ calcPower <- function(n = 100, p = 0.1, mu2 = 0, sigma2 = 1, alpha = 0.05,
 }
 ```
 
-```{r}
-df <- data.frame()
-```
 
 
 ```{r}
 if(FALSE) {
-  sigma2.list <- c( seq(1, 3, 0.2), seq(3.5, 6, 0.5))
-  pb <- knitrProgressBar::progress_estimated( length(sigma2.list))
+  sigma2.list <- seq(1, 6, 0.5)
+  pb <- knitrProgressBar::progress_estimated( length(mu2.list))
   for( sigma2 in sigma2.list) {
     knitrProgressBar::update_progress(pb)
-    df <- calcPower(n = 200, mu2 = 0, p = 0.80, sigma2 = sigma2)
-  }
-}
-```
-
-```{r}
-if(FALSE) {
-  p.list <- seq(0, 1, 0.05)
-  pb <- knitrProgressBar::progress_estimated( length(p.list))
-  for( p in p.list) {
-    knitrProgressBar::update_progress(pb)
-    df <- calcPower(n = 50, mu2 = 0, sigma2 = 4, p = p)
+    df <- calcPower(n = 100, mu2 = 0, p = 0.50, sigma2 = sigma2)
   }
 }
 ```
 
 
 
+
+## Fig 5
+
 ```{r}
+fig5_true <- read.csv("../data/external/Fig5.csv", header = FALSE, col.names = c("sigma2", "P"))
 n <- 100
 mu2 <- 0
 p <- 0.10
 df %>% filter(n==100 & mu2 == 0 & p == 0.10) %>% 
   ggplot(aes(x=sigma2, y=P)) + geom_line() + geom_point() + geom_point() +
   geom_hline(yintercept = 0) + geom_vline(xintercept = 1) + geom_hline(yintercept = 0.05, lty=2) +
+  geom_point( data = fig5_true, aes(x = sigma2, y = P), color = "red", cex = 3) +
   labs(x = "sigma2", title = paste("Fig5: n=", n," mu2=", mu2, "p=",p))
 rm(n, mu2, p)
 ```
+
 ```{r}
+n_ = 100
+mu2_ = 0
+p_ = 0.1
+sigma2.list <- seq(0.1, 6, 0.1)
+pb <- knitrProgressBar::progress_estimated( length(sigma2.list))
+JBpower <- sapply(sigma2.list, function(sigma2_) { 
+  knitrProgressBar::update_progress(pb)
+  P <- replicate(1e4, {
+    z <- genFCN(n = n_, p = p_, mu2 = mu2_, sigma2 = sigma2_)
+    tseries::jarque.bera.test(z)$p.value
+  })
+  mean(P < 0.05)
+  })
+```
+
+```{r}
+fig5_true <- read.csv("../data/external/Fig5.csv", header = FALSE, col.names = c("sigma2", "P"))
+data_frame(sigma2 = sigma2.list, P = JBpower) %>% 
+  ggplot(aes(x = sigma2, y = P)) + geom_line() +
+  geom_point( data = fig5_true, aes(x = sigma2, y = P), color = "red", cex = 3) +
+  geom_hline(yintercept = 0.05, lty=2) + geom_vline(xintercept = 1, lty = 2) +
+  ggtitle(paste("Fig 5: n=", n_, " mu2 = ", mu2_, " p=", p_))
+
+```
+
+
+```{r}
+plot(sigma2.list, JBpower)
+```
+
+
+## Fig 6
+
+```{r}
+n_ = 100
+mu2_ = 0
+p_ = 0.50
+sigma2.list <- seq(0.1, 6, 0.1)
+pb <- knitrProgressBar::progress_estimated( length(sigma2.list))
+JBpower <- sapply(sigma2.list, function(sigma2_) { 
+  knitrProgressBar::update_progress(pb)
+  P <- replicate(1e4, {
+    z <- genFCN(n = n_, p = p_, mu2 = mu2_, sigma2 = sigma2_)
+    tseries::jarque.bera.test(z)$p.value
+  })
+  mean(P < 0.05)
+  })
+```
+
+
+```{r}
+fig6_true <- read.csv("../data/external/Fig6.csv", header = FALSE, col.names = c("sigma2", "P"))
 n_ <- 100
 mu2_ <- 0
 p_ <- 0.50
 df %>% filter(n==n_ & mu2 == mu2_ & p == p_) %>% 
   ggplot(aes(x=sigma2, y=P)) + geom_line() + geom_point() + geom_point() +
   geom_hline(yintercept = 0) + geom_vline(xintercept = 1) + geom_hline(yintercept = 0.05, lty=2) +
+  geom_point( data = fig6_true, aes(x = sigma2, y = P), color = "red", cex = 3) +
   labs(x = "sigma2", title = paste("Fig6: n=", n_," mu2=", mu2_, "p=",p_))
 rm(n_, mu2_, p_)
 ```
 
-```{r}
-n_ <- 100
-mu2_ <- 0
-df %>% filter(n==n_ & mu2 == mu2_) %>% 
-ggplot(aes(x=sigma2, y=P, group = p, color = factor(p))) + geom_line() + geom_point() + geom_point() +
-  geom_hline(yintercept = 0) + geom_vline(xintercept = 1) + geom_hline(yintercept = 0.05, lty=2) +
-  labs(x = "sigma2", title = paste("Figs 5, 6: n=", n_," mu2=", mu2_))
-```
+
+## Fig 7
+
 
 ```{r}
 n_ <- 200
 mu2_ <- 0
-df %>% filter(n==n_ & mu2 == mu2_) %>% 
-ggplot(aes(x=sigma2, y=P, group = p, color = factor(p))) + geom_line() + geom_point() + geom_point() +
+fig7_true <- read.csv("../data/external/Fig7.csv", header = FALSE, col.names = c("sigma2", "P"))
+df %>% filter(n==n_ & mu2 == mu2_) %>% group_by(sigma2) %>% summarise(P = mean(P)) %>% 
+ggplot(aes(x=sigma2, y=P)) + geom_line() + geom_point() + geom_point() +
   geom_hline(yintercept = 0) + geom_vline(xintercept = 1) + geom_hline(yintercept = 0.05, lty=2) +
-  labs(x = "sigma2", title = paste("Figs 7, 6: n=", n_," mu2=", mu2_))
+  geom_point( data = fig7_true, aes(x = sigma2, y = P), color = "red", cex = 3) +
+  labs(x = "sigma2", title = paste("Figs 7: n=", n_," mu2=", mu2_))
 ```
+
+## Fig 8
+
+
+
+```{r}
+n_ <- 50
+mu2_ <- 3
+p_ <- 0.50
+fig8_true <- read.csv("../data/external/Fig8.csv", header = FALSE, col.names = c("sigma2", "P"))
+df %>% filter(n==n_ & mu2 == mu2_ & p == p_) %>% group_by(sigma2) %>% summarise(P = mean(P)) %>% 
+ggplot(aes(x=sigma2, y=P)) + geom_line() + geom_point() + geom_point() +
+  geom_hline(yintercept = 0) + geom_vline(xintercept = 1) + geom_hline(yintercept = 0.05, lty=2) +
+  geom_point( data = fig8_true, aes(x = sigma2, y = P), color = "red", cex = 3) +
+  labs(x = "sigma2", title = paste("Figs 8: n=", n_," mu2=", mu2_, " p=", p_))
+```
+
+
+## Fig 9
+
+```{r}
+n_ <- 50
+p_ <- 0.05
+sigma2_ <- 4
+fig9_true <- read.csv("../data/external/Fig9.csv", header = FALSE, col.names = c("mu2", "P"))
+df %>% filter(n==n_ & sigma2 == sigma2_) %>% group_by(mu2) %>% summarise(P = mean(P)) %>% 
+ggplot(aes(x=mu2, y=P)) + geom_line() + geom_point() + geom_point() +
+  geom_point( data = fig9_true, aes(x = mu2, y = P), color = "red", cex = 3) +
+  ggtitle( paste("Figs 9: n=", n_," sigma2=", sigma2_, " p=", p_)) +
+  ylim(c(0,1))
+```
+
+## Fig 10
+
+```{r}
+n_ <- 50
+p_ <- 0.50
+sigma2_ <- 1
+fig10_true <- read.csv("../data/external/Fig10.csv", header = FALSE, col.names = c("mu2", "P"))
+df %>% filter(n==n_ & sigma2 == sigma2_) %>% group_by(mu2) %>% summarise(P = mean(P)) %>% 
+ggplot(aes(x=mu2, y=P)) + geom_line() + geom_point() + geom_point() +
+  geom_point( data = fig10_true, aes(x = mu2, y = P), color = "red", cex = 3) +
+  ggtitle( paste("Figs 10: n=", n_," sigma2=", sigma2_, " p=", p_)) +
+  ylim(c(0,1))
+```
+
+## Fig 11
+
 ```{r}
 n_ <- 50
 mu2_ <- 0
 sigma2_ <- 4
+fig11_true <- read.csv("../data/external/Fig11.csv", header = FALSE, col.names = c("p", "P"))
 df %>% filter(n==n_ & mu2 == mu2_ & sigma2 == sigma2_) %>% 
-  filter( p %in% seq(0, 1, 0.1)) %>% 
-ggplot(aes(x=p, y=P)) + geom_line() + geom_point() + geom_point() +
+  ggplot(aes(x=p, y=P)) + geom_line() + geom_point() + geom_point() +
   geom_hline(yintercept = 0) + geom_vline(xintercept = 0) + geom_hline(yintercept = 0.05, lty=2) +
+  geom_point( data = fig11_true, aes(x = p, y = P), color = "red", cex = 3) +
   labs(x = "p", title = paste("Figs 11: n=", n_," mu2=", mu2_, "sigma2 = ", sigma2_))
 ```
-```{r}
-df %>% filter(n==n_ & mu2 == mu2_ & sigma2 == sigma2_ & p == 0.1)
-```
+
+## Fig 12
 
 ```{r}
-colnames(df)
+tail(df)
 ```
 
 
+```{r}
+n_ <- 100
+mu2_ <- 0
+p_ <- 0.50
+fig12_true <- read.csv("../data/external/Fig12.csv", header = FALSE, col.names = c("sigma2", "P"))
+df %>% filter(n==n_ & mu2 == mu2_ & p == p_) %>% group_by(sigma2) %>% summarise(P = mean(P)) %>% 
+ggplot(aes(x=sigma2, y=P)) + geom_line() + geom_point() + geom_point() +
+  geom_hline(yintercept = 0) + geom_vline(xintercept = 1) + geom_hline(yintercept = 0.05, lty=2) +
+  geom_point( data = fig12_true, aes(x = sigma2, y = P), color = "red", cex = 3) +
+  labs(x = "sigma2", title = paste("Figs 8: n=", n_," mu2=", mu2_, " p=", p_))
+```

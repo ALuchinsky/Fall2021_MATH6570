@@ -1,0 +1,84 @@
+---
+title: "Power Figures"
+author: "Alexey Luchinsky"
+date: "11/9/2021"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+library(ggplot2)
+library(dplyr)
+library(knitrProgressBar)
+rm(list = ls())
+```
+
+
+
+```{r}
+genFCN <- function(n, p = 0.5, mu2 = 1, sigma2 = 1) {
+  u <- runif(n)
+  x1 <- rnorm(n, mean = 0, sd = 1)
+  x2 <- rnorm(n, mean = mu2, sd = sigma2)
+  ifelse(u>=p, x1, x2)
+}
+```
+
+## Fig 5
+
+
+```{r}
+n_ = 100
+mu2_ = 0
+p_ = 0.1
+sigma2.list <- seq(0.1, 6, 0.1)
+pb <- knitrProgressBar::progress_estimated( length(sigma2.list))
+JBpower <- sapply(sigma2.list, function(sigma2_) { 
+  knitrProgressBar::update_progress(pb)
+  P <- replicate(1e4, {
+    z <- genFCN(n = n_, p = p_, mu2 = mu2_, sigma2 = sigma2_)
+    tseries::jarque.bera.test(z)$p.value
+  })
+  mean(P < 0.05)
+  })
+```
+
+```{r}
+dist_true <- read.csv("../data/external/Figs/Fig5.csv", header = FALSE, col.names = c("sigma2", "P"))
+data_frame(sigma2 = sigma2.list, P = JBpower) %>% 
+  ggplot(aes(x = sigma2, y = P)) + geom_line() +
+  geom_point( data = dist_true, aes(x = sigma2, y = P), color = "red", cex = 3) +
+  geom_hline(yintercept = 0.05, lty=2) + geom_vline(xintercept = 1, lty = 2) +
+  ggtitle(paste("Fig 5: n=", n_, " mu2 = ", mu2_, " p=", p_))
+```
+
+## Fig 6
+
+```{r}
+n_ = 100
+mu2_ = 0
+p_ = 0.50
+sigma2.list <- seq(0.1, 6, 0.1)
+pb <- knitrProgressBar::progress_estimated( length(sigma2.list))
+JBpower <- sapply(sigma2.list, function(sigma2_) { 
+  knitrProgressBar::update_progress(pb)
+  P <- replicate(1e4, {
+    z <- genFCN(n = n_, p = p_, mu2 = mu2_, sigma2 = sigma2_)
+    tseries::jarque.bera.test(z)$p.value
+  })
+  mean(P < 0.05)
+  })
+```
+
+```{r}
+dist_true <- read.csv("../data/external/Figs/Fig6.csv", header = FALSE, col.names = c("sigma2", "P"))
+data_frame(sigma2 = sigma2.list, P = JBpower) %>% 
+  ggplot(aes(x = sigma2, y = P)) + geom_line() +
+  geom_point( data = dist_true, aes(x = sigma2, y = P), color = "red", cex = 3) +
+  geom_hline(yintercept = 0.05, lty=2) + geom_vline(xintercept = 1, lty = 2) +
+  ggtitle(paste("Fig 6: n=", n_, " mu2 = ", mu2_, " p=", p_))
+```
+
