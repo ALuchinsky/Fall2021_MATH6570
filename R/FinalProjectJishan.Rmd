@@ -165,7 +165,7 @@ grid()
 
 ```{r}
 library("readxl")
-rev<- read_excel("/cloud/project/revdata.xlsx")
+rev<- read_excel("../data/external/revdata.xlsx")
 ```
 
 ```{r}
