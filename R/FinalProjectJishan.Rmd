@@ -104,6 +104,7 @@ data <- read.csv("https://query1.finance.yahoo.com/v7/finance/download/%5EGDAXI?
 data["Open"] <- sapply(data["Open"], as.numeric)
 data["Close"] <- sapply(data["Close"], as.numeric)
 data["Return"] <- 100*(data["Close"] - data["Open"])/data["Open"]
+data <- data[ complete.cases(data),]
 returns <- data$Return
 returns = returns[ !is.na(returns)]
 returns
@@ -205,6 +206,12 @@ abline(m)
 library("tseries")
 jarque.bera.test(df)
 ```
+
+```{r}
+jarque.bera.test(data$Return)
+```
+
+
 
 ```{r}
 JB=jarque.bera.test(df)

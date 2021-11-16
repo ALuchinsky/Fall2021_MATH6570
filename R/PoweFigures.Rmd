@@ -1,84 +1,129 @@
----
-title: "Power Figures"
-author: "Alexey Luchinsky"
-date: "11/9/2021"
-output: html_document
----
 
-```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE)
+
+# Collect data func
+
+```{r warning=FALSE}
+#if(FALSE) {
+  n_ <- 50
+  p_ <- 0.05
+  sigma2_ <- 4
+  alpha_ = 0.05
+  mu2.list <- seq(0, 4, 0.5)
+  pb <- knitrProgressBar::progress_estimated( length(mu2.list))
+  for(mu2_ in mu2.list) {
+    knitrProgressBar::update_progress(pb)
+    P_ <- replicate(1e5, {
+      x <- genFCN(n = n_, p = p_, mu2 = mu2_, sigma2 = sigma2_)
+      cvm.test(x)$p.value
+    })
+    df <- rbind(df,
+              data.frame(n = n_, p = p_, mu2 = mu2_, sigma2 = sigma2_, alpha = alpha_, P = mean(P_ < alpha_), test = "CM")
+              )
+  }
+#}
 ```
 
 ```{r}
-library(ggplot2)
-library(dplyr)
-library(knitrProgressBar)
-rm(list = ls())
+library(tseries)
+library(nortest)
+```
+
+
+```{r}
+calc_power <- function(n = 100, mu2 = 0, p = 0.1, sigma2 = 1,
+                       nE = 1e5, alpha = 0.05, test_name = "JB", 
+                       test_func = jarque.bera.test, comment = "Fig5") {
+  P <- replicate(nE, {
+        x <- genFCN(n = n, p = p, mu2 = mu2, sigma2 = sigma2)
+        test_func(x)$p.value
+  })
+  data.frame(
+    n = n, mu2 = mu2, p = p, sigma2 = sigma2, 
+    nE = nE, alpha = alpha, test_name = test_name,
+    P = mean(P < alpha),
+    comment = comment)
+  }
+```
+
+```{r}
+df <- data.frame()
 ```
 
 
 
+```{r warning=FALSE}
+df <- readRDS("../data/processed/df_powerFigs.rds")
+var.list = seq(1, 6, 0.5) 
+pb <- knitrProgressBar::progress_estimated( length(var.list))
+for(sigma2_ in var.list) {
+  knitrProgressBar::update_progress(pb)
+  df0 <- calc_power(n = 200, mu2 = 0, p = 0.80, sigma2 = sigma2_, 
+#                    test_name = "JB", test_func = jarque.bera.test,
+                    test_name = "CM", test_func = cvm.test,
+                    comment = "Fig7")
+  df <- rbind(df, df0)
+}
+saveRDS(df, "../data/processed/df_powerFigs.rds")
+```
+
 ```{r}
-genFCN <- function(n, p = 0.5, mu2 = 1, sigma2 = 1) {
-  u <- runif(n)
-  x1 <- rnorm(n, mean = 0, sd = 1)
-  x2 <- rnorm(n, mean = mu2, sd = sigma2)
-  ifelse(u>=p, x1, x2)
+read_paper_table <- function(file_name) {
+  data5 <- read.csv(file_name, header = FALSE)
+  df_true <- data.frame()
+  for(i in seq(1, ncol(data5), 2)) {
+    df0  <- data.frame(
+      test_name = data5[1,i], 
+      sigma2 = as.numeric(data5[-c(1,2), i]),
+      P = as.numeric(data5[-c(1,2), i+1])
+    )
+    df_true <- rbind(df_true, df0)
+  }
+  df_true
 }
 ```
 
-## Fig 5
-
-
-```{r}
-n_ = 100
-mu2_ = 0
-p_ = 0.1
-sigma2.list <- seq(0.1, 6, 0.1)
-pb <- knitrProgressBar::progress_estimated( length(sigma2.list))
-JBpower <- sapply(sigma2.list, function(sigma2_) { 
-  knitrProgressBar::update_progress(pb)
-  P <- replicate(1e4, {
-    z <- genFCN(n = n_, p = p_, mu2 = mu2_, sigma2 = sigma2_)
-    tseries::jarque.bera.test(z)$p.value
-  })
-  mean(P < 0.05)
-  })
-```
+## Fig5 
 
 ```{r}
-dist_true <- read.csv("../data/external/Figs/Fig5.csv", header = FALSE, col.names = c("sigma2", "P"))
-data_frame(sigma2 = sigma2.list, P = JBpower) %>% 
-  ggplot(aes(x = sigma2, y = P)) + geom_line() +
-  geom_point( data = dist_true, aes(x = sigma2, y = P), color = "red", cex = 3) +
-  geom_hline(yintercept = 0.05, lty=2) + geom_vline(xintercept = 1, lty = 2) +
-  ggtitle(paste("Fig 5: n=", n_, " mu2 = ", mu2_, " p=", p_))
+df_true <- read_paper_table("../data/external/Figs2/Fig5_wpd_datasets.csv")
+ddd <- filter(df_true, test_name %in% c("JB", "CM"))
+df %>% filter(comment == "Fig5") %>% 
+  filter(test_name %in% c("JB", "CM")) %>% 
+  group_by(sigma2, test_name) %>% summarize(P = mean(P)) %>% 
+  ggplot(aes(x = sigma2, y = P, group = test_name, color = test_name)) + geom_line() +
+  geom_point( data = ddd, cex = 3) + 
+  ggtitle("Fig5")
 ```
 
 ## Fig 6
 
 ```{r}
-n_ = 100
-mu2_ = 0
-p_ = 0.50
-sigma2.list <- seq(0.1, 6, 0.1)
-pb <- knitrProgressBar::progress_estimated( length(sigma2.list))
-JBpower <- sapply(sigma2.list, function(sigma2_) { 
-  knitrProgressBar::update_progress(pb)
-  P <- replicate(1e4, {
-    z <- genFCN(n = n_, p = p_, mu2 = mu2_, sigma2 = sigma2_)
-    tseries::jarque.bera.test(z)$p.value
-  })
-  mean(P < 0.05)
-  })
+df_true <- read_paper_table("../data/external/Figs2/Fig6_wpd_datasets.csv")
+ddd <- filter(df_true, test_name %in% c("JB", "CM"))
+df %>% filter(comment == "Fig6") %>% 
+  filter(test_name %in% c("JB", "CM")) %>% 
+  group_by(sigma2, test_name) %>% summarize(P = mean(P)) %>% 
+  ggplot(aes(x = sigma2, y = P, group = test_name, color = test_name)) + geom_line() +
+  geom_point( data = ddd, cex = 3) + 
+  ggtitle("Fig6")
+```
+## Fig 7
+
+```{r}
+df_true <- read_paper_table("../data/external/Figs2/Fig7_wpd_datasets.csv")
+ddd <- filter(df_true, test_name %in% c("JB", "CM"))
+df %>% filter(comment == "Fig7") %>% 
+  filter(test_name %in% c("JB", "CM")) %>% 
+  group_by(sigma2, test_name) %>% summarize(P = mean(P)) %>% 
+  ggplot(aes(x = sigma2, y = P, group = test_name, color = test_name)) + geom_line() +
+  geom_point( data = ddd, cex = 3) + 
+  ggtitle("Fig7")
+```
+```{r}
+readRDS("../data/processed/df_powerFigs.rds") %>% filter(comment == "Fig7") %>% pull(test_name) %>% unique
 ```
 
 ```{r}
-dist_true <- read.csv("../data/external/Figs/Fig6.csv", header = FALSE, col.names = c("sigma2", "P"))
-data_frame(sigma2 = sigma2.list, P = JBpower) %>% 
-  ggplot(aes(x = sigma2, y = P)) + geom_line() +
-  geom_point( data = dist_true, aes(x = sigma2, y = P), color = "red", cex = 3) +
-  geom_hline(yintercept = 0.05, lty=2) + geom_vline(xintercept = 1, lty = 2) +
-  ggtitle(paste("Fig 6: n=", n_, " mu2 = ", mu2_, " p=", p_))
+
 ```
 

@@ -16,6 +16,83 @@ library(tidyr)
 rm(list = ls())
 ```
 
+```{r}
+TeX_dir <- "../TeX/"
+```
+
+
+# Table 2
+
+## KS test
+
+```{r}
+n <- 10
+N <- 1e4
+nTry <- 10
+pb <- knitrProgressBar::progress_estimated( nTry )
+TT <- replicate(10, {
+  knitrProgressBar::update_progress(pb)
+  data <- matrix(rnorm(n*N), ncol = n)
+  T <- apply(data, 1,function(x) ks.test(x, "pnorm")$statistic)
+  quantile(T, 1-0.05)
+})
+```
+
+```{r}
+MASS::truehist(TT)
+```
+
+
+## KSS test
+
+```{r}
+n <- 100
+N <- 1e4
+nTry <- 50
+pb <- knitrProgressBar::progress_estimated( nTry )
+TT <- replicate(nTry, {
+  knitrProgressBar::update_progress(pb)
+  data <- matrix(rnorm(n*N), ncol = n)
+  T <- apply(data, 1,function(x) ks.test(scale(X), "pnorm")$statistic)
+  quantile(T, 1-0.05)
+})
+```
+
+```{r}
+MASS::truehist(TT, main = mean(TT))
+
+```
+
+
+## KSW test
+
+```{r}
+library(fastDR)
+```
+
+```{r}
+y     <- c(rnorm(100,0,1),rnorm(100,0.5,1))
+treat <- rep(0:1,each=100)
+w     <- 1/c(pnorm(y[1:100],0,1),pnorm(y[101:200],0.5,1))
+ks(x=y,z=treat,w=w)
+```
+
+
+```{r}
+N <- 2
+n <- 4
+X <- matrix( rnorm(n*N), ncol = n)
+apply(X, margin, ...)
+```
+
+
+```{r}
+n <- 10
+X <- rnorm(n)
+ECDF <- ecdf(X)
+max(sapply(X, function(x) abs(ECDF(x) - pnorm(x))))
+```
+
 
 # Table V
 
@@ -40,34 +117,42 @@ if(FALSE) {
   system.time({
     for(n in n.list) {
       print(paste("n=", n))
-      df <- updateJBCVfile(n = n, alpha = alpha.list, nLoop = 10)
+        df <- updateJBCVfile(n = n, alpha = alpha.list, nLoop = 10)
     }
   })
 }
 df <- readRDS("../data/processed/tab5.rds")
 ```
 
-```{r}
-df
-```
 
 
-```{r}
-df %>% group_by(n, alpha) %>% summarise(num = n())
-```
 
 
-```{r}
-df %>% group_by(n, alpha) %>% summarise(cv = mean(cv)) 
-```
 
 
 Making table:
 
+
 ```{r}
 df %>% filter(n %in% n.list) %>% group_by(n, alpha) %>% summarise(cv = mean(cv)) %>% 
-  tidyr::spread(n, cv) %>% round(3)
+  tidyr::spread(n, cv) %>% round(3) ->  tab5_our
+colnames(tab5_our) <- as.vector(c("alpha", sapply(colnames(tab5_our)[-1], function(n) paste("n=",n))))
+tab5_our
 ```
+
+```{r}
+library(xtable)
+library(magrittr)
+```
+
+
+
+```{r}
+print(
+  xtable(tab5_our, caption = "Reproducing table 5", label = "tab5_our"), 
+  file = paste(TeX_dir, "tables/tab5_our.tex", sep=""), include.rownames = FALSE)
+```
+
 
 Reading table from paper
 
@@ -78,8 +163,15 @@ Tab5 <- paper.data
 colnames(Tab5)= c("alpha", "10", "20", "50", "100", "200", "500", "1000")
 Tab5_long <- gather(Tab5, key = n, value = cv, "10":"1000")
 Tab5_long$n <- as.numeric(Tab5_long$n)
-Tab5_long %>% group_by(n, alpha) %>% summarise(cv = mean(cv)) %>% spread(n, cv) %>% round(3)
+Tab5_long %>% group_by(n, alpha) %>% summarise(cv = mean(cv)) %>% spread(n, cv) %>% round(3) -> tab5_paper
 ```
+
+```{r}
+print(
+  xtable(tab5_paper, caption = "Table 5 results from the original paper", label = "tab5_paper"), 
+  file = paste(TeX_dir, "tables/tab5_paper.tex", sep=""), include.rownames = FALSE)
+```
+
 
 All plots on one axes frame:
 
@@ -89,6 +181,7 @@ df %>% group_by(n, alpha) %>% summarise(cv = mean(cv)) %>%
     geom_point(data = Tab5_long, aes(x=n, y = cv, group = alpha, color = as.factor(alpha)), cex = 2) + 
   scale_x_log10() +
   ggtitle("Comparison of the calculation (line) with paper's Table 5 (article)")
+ggsave(paste(TeX_dir,"figures/tab5.pdf", sep=""))
 ```
 
 As facet grid
@@ -166,15 +259,19 @@ df <- readRDS("../data/processed//tab6.rds")
 df %>% group_by(n) %>% summarise(nn = n())
 ```
 
-```{r}
-n.list
-```
 
 
 ```{r}
-df %>% filter(n %in% n.list) %>% group_by(n, alpha) %>% summarise(cv = mean(cv)) %>% tidyr::spread(n, cv) %>% round(3)
+df %>% filter(n %in% n.list) %>% group_by(n, alpha) %>% 
+  summarise(cv = mean(cv)) %>% tidyr::spread(n, cv) %>% round(3) -> tab6_our
+tab6_our
 ```
 
+```{r}
+print(
+  xtable(tab6_our, caption = "Reproducing table 6", label = "tab6_our"), 
+  file = paste(TeX_dir, "tables/tab6_our.tex", sep=""), include.rownames = FALSE)
+```
 
 
 ```{r}
@@ -185,6 +282,11 @@ Tab6_long$n <- as.numeric(Tab6_long$n)
 Tab6
 ```
 
+```{r}
+print(
+  xtable(Tab6, caption = "Table 6 results from the original paper", label = "tab6_paper"), 
+  file = paste(TeX_dir, "tables/tab6_paper.tex", sep=""), include.rownames = FALSE)
+```
 
 
 ```{r}
@@ -192,6 +294,7 @@ df %>% group_by(n, alpha) %>% summarize(cv = mean(cv), .groups = "drop") %>%
   ggplot(aes(x=n, y=cv, group = alpha, colour = factor(alpha))) + geom_line() + geom_point(cex=0.7) +
   geom_point(data = Tab6_long, aes(x=n, y = cv, group = alpha, color = as.factor(alpha)), cex = 2) + 
   ggtitle("Comparison of the calculation (line) with paper's Table 6 (article)")
+ggsave(paste(TeX_dir,"figures/tab6.pdf", sep=""))
 ```
 
 ## intervals
@@ -318,7 +421,7 @@ calcPower <- function(n = 100, p = 0.1, mu2 = 0, sigma2 = 1, alpha = 0.05,
     tseries::jarque.bera.test(z)$statistic
   })
   df <- rbind(df, 
-            data.frame(n = n, p = p, mu2 = mu2, sigma2 = sigma2, alpha = alpha, P = mean(T > t0))
+            data.frame(n = n, p = p, mu2 = mu2, sigma2 = sigma2, alpha = alpha, P = mean(T > t0), test = "JB")
             )
   saveRDS(df, file_name)
   df
@@ -336,56 +439,76 @@ if(FALSE) {
     df <- calcPower(n = 100, mu2 = 0, p = 0.50, sigma2 = sigma2)
   }
 }
+df <- readRDS("../data/processed/tabPower.rds")
 ```
 
+```{r}
+df %>% filter(test == "JB") ->df
+```
+
+
+
+
+```{r warning=FALSE}
+#if(FALSE) {
+  n_ <- 50
+  p_ <- 0.05
+  sigma2_ <- 4
+  alpha_ = 0.05
+  mu2.list <- seq(0, 4, 0.5)
+  pb <- knitrProgressBar::progress_estimated( length(mu2.list))
+  for(mu2_ in mu2.list) {
+    knitrProgressBar::update_progress(pb)
+    P_ <- replicate(1e5, {
+      x <- genFCN(n = n_, p = p_, mu2 = mu2_, sigma2 = sigma2_)
+      cvm.test(x)$p.value
+    })
+    df <- rbind(df,
+              data.frame(n = n_, p = p_, mu2 = mu2_, sigma2 = sigma2_, alpha = alpha_, P = mean(P_ < alpha_), test = "CM")
+              )
+  }
+#}
+```
+
+
+
+
+```{r}
+df <- readRDS("../data/processed/tabPower.rds")
+```
+
+
+```{r}
+saveRDS(df, "../data/processed/tabPower.rds")
+```
 
 
 
 ## Fig 5
 
+
+
+
 ```{r}
-fig5_true <- read.csv("../data/external/Fig5.csv", header = FALSE, col.names = c("sigma2", "P"))
+fig5_true <- read.csv("../data/external/Figs/Fig5.csv", header = FALSE, col.names = c("sigma2", "P"))
+fig5_true$test = "JB"
 n <- 100
 mu2 <- 0
 p <- 0.10
 df %>% filter(n==100 & mu2 == 0 & p == 0.10) %>% 
-  ggplot(aes(x=sigma2, y=P)) + geom_line() + geom_point() + geom_point() +
+  group_by(n, sigma2, alpha, test) %>% summarize(P = mean(P)) %>% 
+  ggplot(aes(x=sigma2, y=P, group = test, color = test)) + geom_line() + geom_point()  +
   geom_hline(yintercept = 0) + geom_vline(xintercept = 1) + geom_hline(yintercept = 0.05, lty=2) +
-  geom_point( data = fig5_true, aes(x = sigma2, y = P), color = "red", cex = 3) +
+  geom_point( data = fig5_true, aes(x = sigma2, y = P), cex = 3) +
   labs(x = "sigma2", title = paste("Fig5: n=", n," mu2=", mu2, "p=",p))
 rm(n, mu2, p)
-```
-
-```{r}
-n_ = 100
-mu2_ = 0
-p_ = 0.1
-sigma2.list <- seq(0.1, 6, 0.1)
-pb <- knitrProgressBar::progress_estimated( length(sigma2.list))
-JBpower <- sapply(sigma2.list, function(sigma2_) { 
-  knitrProgressBar::update_progress(pb)
-  P <- replicate(1e4, {
-    z <- genFCN(n = n_, p = p_, mu2 = mu2_, sigma2 = sigma2_)
-    tseries::jarque.bera.test(z)$p.value
-  })
-  mean(P < 0.05)
-  })
-```
-
-```{r}
-fig5_true <- read.csv("../data/external/Fig5.csv", header = FALSE, col.names = c("sigma2", "P"))
-data_frame(sigma2 = sigma2.list, P = JBpower) %>% 
-  ggplot(aes(x = sigma2, y = P)) + geom_line() +
-  geom_point( data = fig5_true, aes(x = sigma2, y = P), color = "red", cex = 3) +
-  geom_hline(yintercept = 0.05, lty=2) + geom_vline(xintercept = 1, lty = 2) +
-  ggtitle(paste("Fig 5: n=", n_, " mu2 = ", mu2_, " p=", p_))
-
+ggsave(paste(TeX_dir, "figures/Fig5.pdf", sep=""))
 ```
 
 
-```{r}
-plot(sigma2.list, JBpower)
-```
+
+
+
 
 
 ## Fig 6
@@ -408,16 +531,19 @@ JBpower <- sapply(sigma2.list, function(sigma2_) {
 
 
 ```{r}
-fig6_true <- read.csv("../data/external/Fig6.csv", header = FALSE, col.names = c("sigma2", "P"))
+fig6_true <- read.csv("../data/external/Figs/Fig6.csv", header = FALSE, col.names = c("sigma2", "P"))
+fig6_true$test <- "JB"
 n_ <- 100
 mu2_ <- 0
 p_ <- 0.50
 df %>% filter(n==n_ & mu2 == mu2_ & p == p_) %>% 
-  ggplot(aes(x=sigma2, y=P)) + geom_line() + geom_point() + geom_point() +
+  group_by(n, sigma2, alpha, test) %>% summarize(P = mean(P)) %>% 
+  ggplot(aes(x=sigma2, y=P, group = test, color = test)) + geom_line() + geom_point()  +
   geom_hline(yintercept = 0) + geom_vline(xintercept = 1) + geom_hline(yintercept = 0.05, lty=2) +
-  geom_point( data = fig6_true, aes(x = sigma2, y = P), color = "red", cex = 3) +
+  geom_point( data = fig6_true, aes(x = sigma2, y = P), cex = 3) +
   labs(x = "sigma2", title = paste("Fig6: n=", n_," mu2=", mu2_, "p=",p_))
 rm(n_, mu2_, p_)
+ggsave(paste(TeX_dir, "figures/Fig6.pdf", sep=""))
 ```
 
 
@@ -427,12 +553,16 @@ rm(n_, mu2_, p_)
 ```{r}
 n_ <- 200
 mu2_ <- 0
-fig7_true <- read.csv("../data/external/Fig7.csv", header = FALSE, col.names = c("sigma2", "P"))
-df %>% filter(n==n_ & mu2 == mu2_) %>% group_by(sigma2) %>% summarise(P = mean(P)) %>% 
-ggplot(aes(x=sigma2, y=P)) + geom_line() + geom_point() + geom_point() +
+p_ = 0.8
+fig7_true <- read.csv("../data/external/Figs/Fig7.csv", header = FALSE, col.names = c("sigma2", "P"))
+fig7_true$test = "JB"
+df %>% filter(n==n_ & mu2 == mu2_ & p == p_) %>% 
+  group_by(n, sigma2, alpha, test) %>% summarize(P = mean(P)) %>% 
+  ggplot(aes(x=sigma2, y=P, group = test, color = test)) + geom_line() + geom_point()  +
   geom_hline(yintercept = 0) + geom_vline(xintercept = 1) + geom_hline(yintercept = 0.05, lty=2) +
-  geom_point( data = fig7_true, aes(x = sigma2, y = P), color = "red", cex = 3) +
+  geom_point( data = fig7_true, aes(x = sigma2, y = P), cex = 3) +
   labs(x = "sigma2", title = paste("Figs 7: n=", n_," mu2=", mu2_))
+ggsave(paste(TeX_dir, "figures/Fig7.pdf", sep=""))
 ```
 
 ## Fig 8
@@ -443,12 +573,15 @@ ggplot(aes(x=sigma2, y=P)) + geom_line() + geom_point() + geom_point() +
 n_ <- 50
 mu2_ <- 3
 p_ <- 0.50
-fig8_true <- read.csv("../data/external/Fig8.csv", header = FALSE, col.names = c("sigma2", "P"))
-df %>% filter(n==n_ & mu2 == mu2_ & p == p_) %>% group_by(sigma2) %>% summarise(P = mean(P)) %>% 
-ggplot(aes(x=sigma2, y=P)) + geom_line() + geom_point() + geom_point() +
+fig8_true <- read.csv("../data/external/Figs/Fig8.csv", header = FALSE, col.names = c("sigma2", "P"))
+fig8_true$test = "JB"
+df %>% filter(n==n_ & mu2 == mu2_ & p == p_) %>% 
+  group_by(n, sigma2, alpha, test) %>% summarize(P = mean(P)) %>% 
+  ggplot(aes(x=sigma2, y=P, group = test, color = test)) + geom_line() + geom_point()  +
   geom_hline(yintercept = 0) + geom_vline(xintercept = 1) + geom_hline(yintercept = 0.05, lty=2) +
   geom_point( data = fig8_true, aes(x = sigma2, y = P), color = "red", cex = 3) +
   labs(x = "sigma2", title = paste("Figs 8: n=", n_," mu2=", mu2_, " p=", p_))
+ggsave(paste(TeX_dir, "figures/Fig8.pdf", sep=""))
 ```
 
 
@@ -458,12 +591,15 @@ ggplot(aes(x=sigma2, y=P)) + geom_line() + geom_point() + geom_point() +
 n_ <- 50
 p_ <- 0.05
 sigma2_ <- 4
-fig9_true <- read.csv("../data/external/Fig9.csv", header = FALSE, col.names = c("mu2", "P"))
-df %>% filter(n==n_ & sigma2 == sigma2_) %>% group_by(mu2) %>% summarise(P = mean(P)) %>% 
-ggplot(aes(x=mu2, y=P)) + geom_line() + geom_point() + geom_point() +
-  geom_point( data = fig9_true, aes(x = mu2, y = P), color = "red", cex = 3) +
+fig9_true <- read.csv("../data/external/Figs/Fig9.csv", header = FALSE, col.names = c("mu2", "P"))
+fig9_true$test <- "JB"
+df %>% filter(n==n_ & sigma2 == sigma2_ & p == p_) %>% 
+  group_by(n, mu2, alpha, test) %>% summarize(P = mean(P)) %>% 
+  ggplot(aes(x=mu2, y=P, group = test, color = test)) + geom_line() + geom_point()  +
+  geom_point( data = fig9_true, aes(x = mu2, y = P),  cex = 3) +
   ggtitle( paste("Figs 9: n=", n_," sigma2=", sigma2_, " p=", p_)) +
   ylim(c(0,1))
+ggsave(paste(TeX_dir, "figures/Fig9.pdf", sep=""))
 ```
 
 ## Fig 10
@@ -472,12 +608,13 @@ ggplot(aes(x=mu2, y=P)) + geom_line() + geom_point() + geom_point() +
 n_ <- 50
 p_ <- 0.50
 sigma2_ <- 1
-fig10_true <- read.csv("../data/external/Fig10.csv", header = FALSE, col.names = c("mu2", "P"))
+fig10_true <- read.csv("../data/external/Figs/Fig10.csv", header = FALSE, col.names = c("mu2", "P"))
 df %>% filter(n==n_ & sigma2 == sigma2_) %>% group_by(mu2) %>% summarise(P = mean(P)) %>% 
 ggplot(aes(x=mu2, y=P)) + geom_line() + geom_point() + geom_point() +
   geom_point( data = fig10_true, aes(x = mu2, y = P), color = "red", cex = 3) +
   ggtitle( paste("Figs 10: n=", n_," sigma2=", sigma2_, " p=", p_)) +
   ylim(c(0,1))
+ggsave(paste(TeX_dir, "figures/Fig10.pdf", sep=""))
 ```
 
 ## Fig 11
@@ -486,12 +623,13 @@ ggplot(aes(x=mu2, y=P)) + geom_line() + geom_point() + geom_point() +
 n_ <- 50
 mu2_ <- 0
 sigma2_ <- 4
-fig11_true <- read.csv("../data/external/Fig11.csv", header = FALSE, col.names = c("p", "P"))
+fig11_true <- read.csv("../data/external/Figs/Fig11.csv", header = FALSE, col.names = c("p", "P"))
 df %>% filter(n==n_ & mu2 == mu2_ & sigma2 == sigma2_) %>% 
   ggplot(aes(x=p, y=P)) + geom_line() + geom_point() + geom_point() +
   geom_hline(yintercept = 0) + geom_vline(xintercept = 0) + geom_hline(yintercept = 0.05, lty=2) +
   geom_point( data = fig11_true, aes(x = p, y = P), color = "red", cex = 3) +
   labs(x = "p", title = paste("Figs 11: n=", n_," mu2=", mu2_, "sigma2 = ", sigma2_))
+ggsave(paste(TeX_dir, "figures/Fig11.pdf", sep=""))
 ```
 
 ## Fig 12
@@ -505,10 +643,145 @@ tail(df)
 n_ <- 100
 mu2_ <- 0
 p_ <- 0.50
-fig12_true <- read.csv("../data/external/Fig12.csv", header = FALSE, col.names = c("sigma2", "P"))
+fig12_true <- read.csv("../data/external/Figs/Fig12.csv", header = FALSE, col.names = c("sigma2", "P"))
 df %>% filter(n==n_ & mu2 == mu2_ & p == p_) %>% group_by(sigma2) %>% summarise(P = mean(P)) %>% 
 ggplot(aes(x=sigma2, y=P)) + geom_line() + geom_point() + geom_point() +
   geom_hline(yintercept = 0) + geom_vline(xintercept = 1) + geom_hline(yintercept = 0.05, lty=2) +
   geom_point( data = fig12_true, aes(x = sigma2, y = P), color = "red", cex = 3) +
-  labs(x = "sigma2", title = paste("Figs 8: n=", n_," mu2=", mu2_, " p=", p_))
+  labs(x = "sigma2", title = paste("Figs 12: n=", n_," mu2=", mu2_, " p=", p_))
+ggsave(paste(TeX_dir, "figures/Fig12.pdf", sep=""))
 ```
+# Table 10
+
+```{r}
+ibrary(e1071)
+```
+
+
+```{r}
+p.list <- c(0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.8)
+pb <- knitrProgressBar::progress_estimated( length(p.list))
+tab10 <- sapply(p.list, function(p_) {
+  knitrProgressBar::update_progress( pb )
+  x <- genFCN(1e7, p = p_, mu2 = 0, sigma2 = 3)
+  k <- 3 + kurtosis(x)
+  T <- as.numeric( 
+    ( quantile(x, 0.975) - quantile(x, 0.025))/( quantile(x, 0.875) - quantile(x, 0.125))
+  )
+  c("p" = p_, "kurt" = k, "T" = T)
+})
+```
+
+```{r}
+df10 <- data.frame(tab10[2:3,])
+colnames(df10) <- tab10[1,]
+round(df10, 2)
+```
+
+
+
+```{r}
+jarqueu.bera.test <-
+function(x)
+{
+if((NCOL(x) > 1) || is.data.frame(x))
+stop("x is not a vector or univariate time series")
+if(any(is.na(x)))
+stop("NAs in x")
+DNAME <- deparse(substitute(x))
+n <- length(x)
+m1 <- sum(x)/n
+m2 <- sum((x-m1)^2)/n
+m3 <- sum((x-m1)^3)/n
+m4 <- sum((x-m1)^4)/n
+b1 <- (m3/m2^(3/2))^2
+b2 <- (m4/m2^2)
+vs <-(6*(n-2))/((n+1)*(n+3))
+ek <-(3*(n-1))/(n+1)
+vk <-(24*n*(n-2)*(n-3))/(((n+1)^2)*(n+3)*(n+5))
+STATISTIC <-(b1/vs)*(b2-ek)^2/vk
+PVAL <- 1 - pchisq(STATISTIC,df = 2)
+PARAMETER <- 2
+METHOD <- "Jarque Bera Test"
+names(STATISTIC) <- "X-squared"
+names(PARAMETER) <- "df"
+structure(list(statistic = STATISTIC,
+parameter = PARAMETER,
+p.value = PVAL,
+method = METHOD,
+data.name = DNAME),
+class = "htest")
+}
+```
+
+```{r}
+x <- rnorm(10)
+jarqueu.bera.test(rnorm(10))
+```
+
+```{r}
+tseries::jarque.bera.test(x)
+```
+
+```{r}
+jbtest <- function(z) {
+  n <- length(z)
+  bz <- mean(z)
+  mu2 <- mean( (z-bz)**2)
+  mu3 <- mean( (z - bz)**3)
+  mu4 <- mean( (z - bz)**4)
+  S <- mu3/mu2**(3/2)
+  K <- mu4/mu2**2
+  return(n/6*(S**2 + (K-3)**2/4))
+}
+```
+
+```{r}
+jbtest(x)
+```
+
+```{r}
+tseries::jarque.bera.test(x)$statistic/jbtest(x)
+```
+
+
+```{r}
+n <- 10
+T <- as.vector(replicate(1e5, {
+  tseries::jarque.bera.test( rnorm(n))$statistic
+}))
+quantile(T, 1-0.05)
+```
+
+```{r}
+pchisq(2.524132, df=2, lower.tail = FALSE)
+```
+
+```{r}
+MASS::truehist(T)
+
+```
+
+
+```{r}
+pnorm(0.05, lower.tail = FALSE)
+```
+
+
+```{r}
+set.seed(123)
+n <- 1000
+x <- rnorm(n)
+test <- tseries::jarque.bera.test(x)
+test
+qchisq(test$p.value, df = 2)
+```
+
+```{r}
+qchisq(test$p.value, df = 2)
+```
+
+```{r}
+qnorm(0.5)
+```
+
