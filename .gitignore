@@ -1,4 +1,5 @@
 *.html
 *.numbers
 data/processed/
+*.png
 

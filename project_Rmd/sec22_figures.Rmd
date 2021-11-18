@@ -10,112 +10,60 @@ df <- readRDS("../data/processed/tabPower.rds")
 ```
 
 
-
-
 ```{r}
-fig5_true <- read.csv("../data/external/Figs/Fig5.csv", header = FALSE, col.names = c("sigma2", "P"))
-fig5_true$test = "JB"
-n <- 100
-mu2 <- 0
-p <- 0.10
-df %>% filter(n==100 & mu2 == 0 & p == 0.10) %>% 
-  group_by(n, sigma2, alpha, test) %>% summarize(P = mean(P), .groups = "drop_last") %>% 
-  ggplot(aes(x=sigma2, y=P, group = test, color = test)) + geom_line() + geom_point()  +
-  geom_hline(yintercept = 0) + geom_vline(xintercept = 1) + geom_hline(yintercept = 0.05, lty=2) +
-  geom_point( data = fig5_true, aes(x = sigma2, y = P), cex = 3) +
-  labs(x = "sigma2", title = paste("Fig5: n=", n," mu2=", mu2, "p=",p))
+make_figure <- function(query, xvar, fig_num, show_true = TRUE) {
+  fig <- df %>% filter( eval(parse(text = query))) %>% 
+    group_by(n, sigma2, mu2, p, alpha, test) %>% summarize(P = mean(P), .groups = "drop_last") %>% 
+    ggplot(aes_string(x=xvar, y="P", group = "test", color = "test")) + geom_line() + geom_point() +
+    geom_hline(yintercept = 0) + geom_vline(xintercept = 1) + geom_hline(yintercept = 0.05, lty=2) +
+    ggtitle(paste("Fig ", fig_num, ": ", query, sep=""))
+  if(show_true) {
+    file_name = paste("../data/external/Figs/Fig",fig_num,".csv", sep="")
+    fig_true <- read.csv(file_name, header = FALSE, col.names = c("sigma2", "P"))
+    fig_true$test = "JB"
+    fig <- fig + geom_point( data = fig_true, aes(x = sigma2, y = P), cex = 3)
+  }
+  fig
+}
 ```
 
 ```{r}
-fig6_true <- read.csv("../data/external/Figs/Fig6.csv", header = FALSE, col.names = c("sigma2", "P"))
-fig6_true$test <- "JB"
-n_ <- 100
-mu2_ <- 0
-p_ <- 0.50
-df %>% filter(n==n_ & mu2 == mu2_ & p == p_) %>% 
-  group_by(n, sigma2, alpha, test) %>% summarize(P = mean(P), .groups = "drop_last") %>% 
-  ggplot(aes(x=sigma2, y=P, group = test, color = test)) + geom_line() + geom_point()  +
-  geom_hline(yintercept = 0) + geom_vline(xintercept = 1) + geom_hline(yintercept = 0.05, lty=2) +
-  geom_point( data = fig6_true, aes(x = sigma2, y = P), cex = 3) +
-  labs(x = "sigma2", title = paste("Fig6: n=", n_," mu2=", mu2_, "p=",p_))
-rm(n_, mu2_, p_)
-```
-
-
-```{r}
-n_ <- 200
-mu2_ <- 0
-p_ = 0.8
-fig7_true <- read.csv("../data/external/Figs/Fig7.csv", header = FALSE, col.names = c("sigma2", "P"))
-fig7_true$test = "JB"
-df %>% filter(n==n_ & mu2 == mu2_ & p == p_) %>% 
-  group_by(n, sigma2, alpha, test) %>% summarize(P = mean(P), .groups = "drop_last") %>% 
-  ggplot(aes(x=sigma2, y=P, group = test, color = test)) + geom_line() + geom_point()  +
-  geom_hline(yintercept = 0) + geom_vline(xintercept = 1) + geom_hline(yintercept = 0.05, lty=2) +
-  geom_point( data = fig7_true, aes(x = sigma2, y = P), cex = 3) +
-  labs(x = "sigma2", title = paste("Figs 7: n=", n_," mu2=", mu2_))
+make_figure("n==100 & mu2 == 0 & p == 0.10", xvar = "sigma2", fig_num = 5) 
 ```
 
 ```{r}
-n_ <- 50
-mu2_ <- 3
-p_ <- 0.50
-fig8_true <- read.csv("../data/external/Figs/Fig8.csv", header = FALSE, col.names = c("sigma2", "P"))
-fig8_true$test = "JB"
-df %>% filter(n==n_ & mu2 == mu2_ & p == p_) %>% 
-  group_by(n, sigma2, alpha, test) %>% summarize(P = mean(P), .groups = "drop_last") %>% 
-  ggplot(aes(x=sigma2, y=P, group = test, color = test)) + geom_line() + geom_point()  +
-  geom_hline(yintercept = 0) + geom_vline(xintercept = 1) + geom_hline(yintercept = 0.05, lty=2) +
-  geom_point( data = fig8_true, aes(x = sigma2, y = P), color = "red", cex = 3) +
-  labs(x = "sigma2", title = paste("Figs 8: n=", n_," mu2=", mu2_, " p=", p_))
+make_figure("n==100 & mu2 == 0 & p == 0.50", xvar = "sigma2", fig_num = 6)
 ```
 
 ```{r}
-n_ <- 50
-p_ <- 0.05
-sigma2_ <- 4
-fig9_true <- read.csv("../data/external/Figs/Fig9.csv", header = FALSE, col.names = c("mu2", "P"))
-fig9_true$test <- "JB"
-df %>% filter(n==n_ & sigma2 == sigma2_ & p == p_) %>% 
-  group_by(n, mu2, alpha, test) %>% summarize(P = mean(P), .groups = "drop_last") %>% 
-  ggplot(aes(x=mu2, y=P, group = test, color = test)) + geom_line() + geom_point()  +
-  geom_point( data = fig9_true, aes(x = mu2, y = P),  cex = 3) +
-  ggtitle( paste("Figs 9: n=", n_," sigma2=", sigma2_, " p=", p_)) +
-  ylim(c(0,1))
+make_figure("n==100 & mu2 == 0 & p == 0.50", xvar = "sigma2", fig_num = 6)
+```
+
+
+
+
+```{r}
+make_figure(query = "n == 200 & mu2 == 0 & p == 0.8", xvar = "sigma2", fig_num = 7)
 ```
 
 ```{r}
-n_ <- 50
-p_ <- 0.50
-sigma2_ <- 1
-fig10_true <- read.csv("../data/external/Figs/Fig10.csv", header = FALSE, col.names = c("mu2", "P"))
-df %>% filter(n==n_ & sigma2 == sigma2_) %>% group_by(mu2) %>% summarise(P = mean(P)) %>% 
-ggplot(aes(x=mu2, y=P)) + geom_line() + geom_point() + geom_point() +
-  geom_point( data = fig10_true, aes(x = mu2, y = P), color = "red", cex = 3) +
-  ggtitle( paste("Figs 10: n=", n_," sigma2=", sigma2_, " p=", p_)) +
-  ylim(c(0,1))
+make_figure(query = "n == 50 & mu2 == 3 & p == 0.50", xvar = "sigma2", fig_num = 8)
 ```
 
 ```{r}
-n_ <- 50
-mu2_ <- 0
-sigma2_ <- 4
-fig11_true <- read.csv("../data/external/Figs/Fig11.csv", header = FALSE, col.names = c("p", "P"))
-df %>% filter(n==n_ & mu2 == mu2_ & sigma2 == sigma2_) %>% 
-  ggplot(aes(x=p, y=P)) + geom_line() + geom_point() + geom_point() +
-  geom_hline(yintercept = 0) + geom_vline(xintercept = 0) + geom_hline(yintercept = 0.05, lty=2) +
-  geom_point( data = fig11_true, aes(x = p, y = P), color = "red", cex = 3) +
-  labs(x = "p", title = paste("Figs 11: n=", n_," mu2=", mu2_, "sigma2 = ", sigma2_))
+make_figure(query = "n == 50 & sigma2 == 4 & p == 0.05", xvar = "mu2", fig_num = 9)
 ```
 
 ```{r}
-n_ <- 100
-mu2_ <- 0
-p_ <- 0.50
-fig12_true <- read.csv("../data/external/Figs/Fig12.csv", header = FALSE, col.names = c("sigma2", "P"))
-df %>% filter(n==n_ & mu2 == mu2_ & p == p_) %>% group_by(sigma2) %>% summarise(P = mean(P)) %>% 
-ggplot(aes(x=sigma2, y=P)) + geom_line() + geom_point() + geom_point() +
-  geom_hline(yintercept = 0) + geom_vline(xintercept = 1) + geom_hline(yintercept = 0.05, lty=2) +
-  geom_point( data = fig12_true, aes(x = sigma2, y = P), color = "red", cex = 3) +
-  labs(x = "sigma2", title = paste("Figs 12: n=", n_," mu2=", mu2_, " p=", p_))
+make_figure(query = "n == 50 & sigma2 == 1 & p == 0.50", xvar = "mu2", fig_num = 10) +
+  ylim(c(0, 0.4))
 ```
+
+```{r}
+make_figure(query = "n == 50 & mu2 == 0 & sigma2 == 4", xvar = "p", fig_num = 11)
+```
+
+```{r}
+make_figure(query = "n == 100 & mu2 == 0 & p == 0.50", xvar = "sigma2", fig_num = 12)
+```
+
