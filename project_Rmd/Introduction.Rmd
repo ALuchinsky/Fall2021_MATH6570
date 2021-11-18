@@ -1,0 +1,7 @@
+
+The goal of our project is to reproduce the results of the paper
+
+```{r test-child}
+plot(trees)
+```
+

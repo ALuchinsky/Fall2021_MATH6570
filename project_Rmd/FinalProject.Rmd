@@ -1,0 +1,51 @@
+---
+title: "Final Project"
+author: "Alexey Luchinsky"
+date: "11/18/2021"
+output:
+  html_document:
+    code_folding: hide
+    theme: lumen
+    toc: yes
+    toc_float: yes
+
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r message=FALSE, warning=FALSE, paged.print=FALSE}
+library(dplyr)
+library(magrittr)
+library(tidyr)
+```
+
+
+This is the final project of our group
+
+# 1. Introduction
+
+```{r test-main, child = 'Introduction.Rmd'}
+```
+
+
+# 2. Results
+
+## 2.1) Section 2 of the paper
+
+## 2.2) Section 3 of the paper
+
+### 2.2.1 Table 5
+
+```{r test-main, child = 'sec22_table5.Rmd'}
+```
+
+
+### 2..2.2 Table 6
+
+### 2.2.3 Power Firures
+
+# Summary
+
+# Refrences

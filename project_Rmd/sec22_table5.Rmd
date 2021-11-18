@@ -1,0 +1,43 @@
+In this subsection we are reproducing results from Table 5 of the original paper
+
+
+
+```{r}
+alpha.list <- c(0.01, 0.02, 0.05, 0.1, 0.2) 
+n.list <- c(10, 20, 50, 100, 200, 500)
+df <- readRDS("../data/processed/tab5.rds")
+```
+
+Here are the results of our calculations
+
+```{r}
+df %>% filter(n %in% n.list) %>% group_by(n, alpha) %>% summarise(cv = mean(cv), .groups = "drop_last") %>% 
+  tidyr::spread(n, cv) %>% round(3) ->  tab5_our
+colnames(tab5_our) <- as.vector(c("alpha", sapply(colnames(tab5_our)[-1], function(n) paste("n=",n))))
+knitr::kable(head(tab5_our), col.names = gsub("[.]", " ", names(tab5_our)))
+```
+
+For comparison, below the table from the paper is presented:
+
+```{r}
+# conversion done with https://pdftables.com/blog/convert-pdf-to-csv
+paper.data <- read.csv("../data/external/Table5.csv")
+Tab5 <- paper.data
+colnames(Tab5)= c("alpha", "10", "20", "50", "100", "200", "500", "1000")
+Tab5_long <- tidyr::gather(Tab5, key = n, value = cv, "10":"1000")
+Tab5_long$n <- as.numeric(Tab5_long$n)
+Tab5_long %>% group_by(n, alpha) %>% summarise(cv = mean(cv), .groups = "drop") %>% tidyr::spread(n, cv) %>% round(3) -> tab5_paper
+tab5_paper <- tab5_paper[,-ncol(tab5_paper)]
+knitr::kable(head(tab5_paper), col.names = gsub("[.]", " ", names(tab5_paper)))
+```
+
+
+Here is the ratio of the results for comparison
+
+```{r}
+df_our <- df %>% filter(n %in% n.list) %>% group_by(n, alpha) %>% summarise(cv = mean(cv), .groups = "drop_last")
+df_paper <- Tab5_long
+tabR <- merge(df_our, df_paper, by = c("alpha", "n")) %>% mutate(r = cv.x/cv.y) %>% select(alpha, n, r) %>% tidyr::spread(n, r) %>% round(3)
+knitr::kable(head(tabR), col.names = gsub("[.]", " ", names(tabR)))
+```
+
