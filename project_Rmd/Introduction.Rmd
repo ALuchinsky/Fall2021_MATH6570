@@ -1,6 +1,8 @@
 
 The goal of our project is to reproduce the results of the paper
 
+This is me
+
 ```{r test-child}
 plot(trees)
 ```
