@@ -48,7 +48,11 @@ This is the final project of our group
 ```
 
 
-### 2.2.3 Power Firures
+### 2.2.3 Power Figures
+
+```{r test-main, child = 'sec22_figures.Rmd'}
+```
+
 
 # Summary
 
