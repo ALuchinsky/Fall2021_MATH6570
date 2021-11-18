@@ -5,20 +5,18 @@ library(magrittr)
 ```
 
 
-In this subsection we are reproducing results from Table 5 of the original paper
-
-
+Our results for table 6 go here
 
 ```{r}
 alpha.list <- c(0.01, 0.02, 0.05, 0.1, 0.2) 
 n.list <- c(10, 20, 50, 100, 200, 500)
-df <- readRDS("../data/processed/tab5.rds")
+df <- readRDS("../data/processed/tab6.rds")
 df %>% filter(n %in% n.list) %>% group_by(n, alpha) %>% summarise(cv = mean(cv), .groups = "drop_last") -> df_ours
 #
-Tab5 <- read.csv("../data/external/Table5.csv")
-colnames(Tab5)= c("alpha", "10", "20", "50", "100", "200", "500", "1000")
-Tab5_long <- tidyr::gather(Tab5, key = n, value = cv, "10":"1000") %>% mutate(n = as.numeric(n)) %>% filter(n %in% n.list)
-tabR <- merge(df_ours, Tab5_long, by=c("alpha", "n")) %>% mutate(R = cv.x/cv.y)
+Tab6 <- read.csv("../data/external/Table6.csv")
+colnames(Tab6)= c("alpha", "10", "20", "50", "100", "200", "500")
+Tab6_long <- tidyr::gather(Tab6, key = n, value = cv, "10":"500") %>% mutate(n = as.numeric(n)) %>% filter(n %in% n.list)
+tabR <- merge(df_ours, Tab6_long, by=c("alpha", "n")) %>% mutate(R = cv.x/cv.y)
 ```
 
 Here are the results of our calculations
